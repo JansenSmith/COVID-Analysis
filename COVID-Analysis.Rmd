@@ -38,21 +38,39 @@ library(tidyverse)
 library(lubridate)
 ```
 
-## NYPD Shooting data import
+## COVID-19 data import
 
-The wisdom of using the NYPD as a source for crime statistics is a question best left to the reader. For more on this topic, please refer to the many historical overturned convictions due to demonstrated systemic NYPD illegality: https://abc7ny.com/convictions-overturned-brooklyn-da-eric-gonzalez-nypd-misconduct-corruption/12212052/
-
-To disassociate this report from the worst excesses of the NYPD's misconduct, the asserted racial identities of both victims and alleged perpetrators are immediately removed from the dataset.
+Begin by reading in cases and deaths data from four main csv files, over US and global scope.
 
 ```{r import}
-url = "https://data.cityofnewyork.us/api/views/833y-fsy8/rows.csv?accessType=DOWNLOAD"
-data = read_csv(url)
-data = data %>%
-  mutate(OCCUR_DATE = mdy(OCCUR_DATE), Week_of_Year = lubridate::week(OCCUR_DATE)) %>%
-  select(-X_COORD_CD, -Y_COORD_CD, -Latitude, -Longitude, -Lon_Lat, -BORO, -LOC_OF_OCCUR_DESC, -PRECINCT, -JURISDICTION_CODE, -LOC_CLASSFCTN_DESC, -LOCATION_DESC, -STATISTICAL_MURDER_FLAG, -PERP_AGE_GROUP, -PERP_SEX, -PERP_RACE, OCCUR_TIME, -VIC_AGE_GROUP, -VIC_SEX, -VIC_RACE)
-spec(data)
-head(data, 20)
-summary(data)
+url = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/"
+filenames = c("time_series_covid19_confirmed_US.csv",  "time_series_covid19_confirmed_global.csv", "time_series_covid19_deaths_US.csv",  "time_series_covid19_deaths_global.csv")
+urls = str_c(url, filenames)
+
+global_cases = read_csv(urls[1])
+global_deaths = read_csv(urls[2])
+US_cases = read_csv(urls[3])
+US_deaths = read_csv(urls[4])
+
+
+
+#data = read_csv(url)
+#data = data %>%
+#  mutate(OCCUR_DATE = mdy(OCCUR_DATE), Week_of_Year = lubridate::week(OCCUR_DATE)) %>%
+#  select(-X_COORD_CD, -Y_COORD_CD, -Latitude, -Longitude, -Lon_Lat, -BORO, -LOC_OF_OCCUR_DESC, -PRECINCT, -JURISDICTION_CODE, -LOC_CLASSFCTN_DESC, -LOCATION_DESC, -STATISTICAL_MURDER_FLAG, -PERP_AGE_GROUP, -PERP_SEX, -PERP_RACE, OCCUR_TIME, -VIC_AGE_GROUP, -VIC_SEX, -VIC_RACE)
+#spec(data)
+#head(data, 20)
+#summary(data)
+```
+
+## Tidy global data
+After looking at global_cases and global_deaths, we would like to tidy those datasets and put each variable (date, cases, deaths) in their own column.
+Also, we don't need Lat and Long for our analysis, so we will get rid of those and rename Region and State to be more R friendly.
+
+```{r tidy_global_data}
+global_cases <- global_cases %>% select(-c(Lat, Long_))
+
+
 ```
 
 ## NYPD Shooting data visualization
