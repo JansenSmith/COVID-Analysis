@@ -96,7 +96,18 @@ US_cases_tidy = US_cases %>%
   pivot_longer(cols = -(UID:Combined_Key),
                names_to = "date",
                values_to = "cases") %>%
-  mutate(date = as.Date(date, format = "%m/%d/%y"))
+  mutate(date = as.Date(date, format = "%m/%d/%y")) %>%
+  select(Admin2:cases) %>%
+  select(-c(Lat, Long_))
+
+
+US_deaths_tidy = US_deaths %>%
+  pivot_longer(cols = -(UID:Combined_Key),
+               names_to = "date",
+               values_to = "deaths") %>%
+  mutate(date = as.Date(date, format = "%m/%d/%y")) %>%
+  select(Admin2:deaths) %>%
+  select(-c(Lat, Long_))
 
 ```
 
@@ -107,6 +118,11 @@ global = global_cases_tidy %>%
   full_join(global_deaths_tidy) %>%
   filter(cases > 0)
 summary(global)
+
+US = US_cases_tidy %>%
+  full_join(US_deaths_tidy)
+summary(US)
+
 ```
 # Convert UID to character and exclude incompatible columns
 global_cases <- global_cases %>%
