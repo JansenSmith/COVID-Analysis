@@ -68,7 +68,47 @@ After looking at global_cases and global_deaths, we would like to tidy those dat
 Also, we don't need Lat and Long for our analysis, so we will get rid of those and rename Region and State to be more R friendly.
 
 ```{r tidy_global_data}
-global_cases <- global_cases %>% select(-c(Lat, Long_))
+
+global_deaths = global_deaths %>%
+  pivot_longer(cols = -c('Province/State',
+                         'Country/Region', Lat, Long),
+               names_to = "date",
+               values_to = "deaths") %>%
+  select(-c(Lat, Long))
+
+
+
+```
+```
+# Convert UID to character and exclude incompatible columns
+global_cases <- global_cases %>%
+    mutate(UID = as.character(UID)) %>%
+    select(-c(iso2, code3, FIPS, Admin2, iso3, Lat, Long_))  # Exclude columns you don't need
+
+# Gather the data into a longer format
+global_cases <- global_cases %>%
+    pivot_longer(
+        cols = starts_with("1/"),  # Select columns corresponding to dates
+        names_to = "date",
+        values_to = "cases",
+        values_drop_na = TRUE  # Drop NA values
+    ) %>%
+    mutate(date = as.Date(date, format = "%m/%d/%y"))
+
+# Tidy the data by pivoting longer
+global_cases <- global_cases %>%
+    pivot_longer(
+        cols = c(Province_State, "Country_Region"),
+        names_to = "location",
+        values_to = "value"
+    ) %>%
+    arrange(location, date)
+
+global <- global_cases %>%
+    full_join(global_deaths)
+
+# Display the resulting tidy dataset
+print(global_cases)
 
 
 ```
