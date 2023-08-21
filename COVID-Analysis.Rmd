@@ -44,7 +44,7 @@ Begin by reading in cases and deaths data from four main csv files, over US and 
 
 ```{r import}
 url = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/"
-filenames = c("time_series_covid19_confirmed_US.csv",  "time_series_covid19_confirmed_global.csv", "time_series_covid19_deaths_US.csv",  "time_series_covid19_deaths_global.csv")
+filenames = c("time_series_covid19_confirmed_global.csv",  "time_series_covid19_deaths_global.csv", "time_series_covid19_confirmed_US.csv",  "time_series_covid19_deaths_US.csv")
 urls = str_c(url, filenames)
 
 global_cases = read_csv(urls[1])
@@ -67,9 +67,10 @@ US_deaths = read_csv(urls[4])
 After looking at global_cases and global_deaths, we would like to tidy those datasets and put each variable (date, cases, deaths) in their own column.
 Also, we don't need Lat and Long for our analysis, so we will get rid of those and rename Region and State to be more R friendly.
 
-```{r tidy_data}
+```{r tidy_global_data}
 
 global_cases_tidy = global_cases %>%
+  rename(Province_State = "Province/State", Country_Region = "Country/Region") %>%
   select("Province_State", "Country_Region", matches("^\\d{1,2}/\\d{1,2}/\\d{2}$")) %>%
   pivot_longer(cols = -c('Province_State',
                          'Country_Region'),
@@ -84,10 +85,28 @@ global_deaths_tidy <- global_deaths %>%
                names_to = "date",
                values_to = "deaths") %>%
   mutate(date = as.Date(date, format = "%m/%d/%y"))
+```
 
+## Tidy US data
+After looking at US_cases and US_deaths, we would like to tidy those datasets and put each variable (date, cases, deaths) in their own column.
+Also, we don't need Lat and Long for our analysis, so we will get rid of those and rename Region and State to be more R friendly.
 
+``` {r tidy_US_data}
+US_cases_tidy = US_cases %>%
+  pivot_longer(cols = -(UID:Combined_Key),
+               names_to = "date",
+               values_to = "cases") %>%
+  mutate(date = as.Date(date, format = "%m/%d/%y"))
 
 ```
+
+## Join datasets
+Merge datasets to allow for cases and deaths to be separate variables in the same dataset.
+``` {r merge_data}
+global = global_cases_tidy %>%
+  full_join(global_deaths_tidy) %>%
+  filter(cases > 0)
+summary(global)
 ```
 # Convert UID to character and exclude incompatible columns
 global_cases <- global_cases %>%
