@@ -69,12 +69,13 @@ Also, we don't need Lat and Long for our analysis, so we will get rid of those a
 
 ```{r tidy_global_data}
 
-global_deaths = global_deaths %>%
+global_deaths_tidy = global_deaths %>%
   pivot_longer(cols = -c('Province/State',
                          'Country/Region', Lat, Long),
                names_to = "date",
                values_to = "deaths") %>%
-  select(-c(Lat, Long))
+  select(-c(Lat, Long)) %>%
+  mutate(date = as.Date(date, format = "%m/%d/%y"))
 
 
 
