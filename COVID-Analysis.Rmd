@@ -67,14 +67,22 @@ US_deaths = read_csv(urls[4])
 After looking at global_cases and global_deaths, we would like to tidy those datasets and put each variable (date, cases, deaths) in their own column.
 Also, we don't need Lat and Long for our analysis, so we will get rid of those and rename Region and State to be more R friendly.
 
-```{r tidy_global_data}
+```{r tidy_data}
 
-global_deaths_tidy = global_deaths %>%
-  pivot_longer(cols = -c('Province/State',
-                         'Country/Region', Lat, Long),
+global_cases_tidy = global_cases %>%
+  select("Province_State", "Country_Region", matches("^\\d{1,2}/\\d{1,2}/\\d{2}$")) %>%
+  pivot_longer(cols = -c('Province_State',
+                         'Country_Region'),
+               names_to = "date",
+               values_to = "cases") %>%
+  mutate(date = as.Date(date, format = "%m/%d/%y"))
+
+global_deaths_tidy <- global_deaths %>%
+  rename(Province_State = "Province/State", Country_Region = "Country/Region") %>%
+  select("Province_State", "Country_Region", matches("^\\d{1,2}/\\d{1,2}/\\d{2}$")) %>%
+  pivot_longer(cols = -c('Province_State', 'Country_Region'),
                names_to = "date",
                values_to = "deaths") %>%
-  select(-c(Lat, Long)) %>%
   mutate(date = as.Date(date, format = "%m/%d/%y"))
 
 
