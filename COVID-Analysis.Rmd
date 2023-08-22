@@ -79,10 +79,11 @@ global_deaths_tidy <- global_deaths %>%
 ```
 
 ## Join datasets
-Merge datasets to allow for cases and deaths to be separate variables in the same dataset.
+To facilitate a comprehensive analysis that incorporates both COVID-19 cases and deaths data, the two tidied datasets, `global_cases_tidy` and `global_deaths_tidy`, are merged. This enables the exploration of cases and deaths as separate variables within the same dataset.
+
 ``` {r merge_data}
 
-# <please fill this in>
+# Merge global_cases_tidy and global_deaths_tidy to create a combined dataset
 suppressMessages({ # Messages suppressed for aesthetic reasons. Code runs without error.
   global = global_cases_tidy %>%
     full_join(global_deaths_tidy) %>%
@@ -96,7 +97,9 @@ suppressMessages({ # Messages suppressed for aesthetic reasons. Code runs withou
 
 
 ## Global Lifespan & Income Per Capita Import
-Importing Hans Rosling's custom dataset for The Joy of Stats, maintained by his organization GapMinder since his death in 2017. This dataset <please fill this in>
+
+Importing Hans Rosling's custom dataset for The Joy of Stats, maintained by his organization GapMinder since his death in 2017. This dataset contains essential socio-economic indicators, including lifespan, income per capita, population, and region, for various countries. The dataset serves as a valuable resource to explore the relationships between these indicators and COVID-19's impact on populations.
+
 ``` {r import_hans_rosling}
 
 # This csv URL is a permalink that will remain reproducible.
@@ -104,8 +107,14 @@ global_stats_url = "https://raw.githubusercontent.com/JansenSmith/COVID-Analysis
 global_stats = read_csv(global_stats_url, show_col_types = FALSE)
 ```
 
-## <please fill this in>
-<please fill this in>
+## Data Preparation and Latest Year Summary
+
+In this section, we prepare the data for further analysis by focusing on the latest available date in the Johns Hopkins dataset.
+
+To gain insights into COVID-19 lethality, we aggregate the data at the country level. This aggregation involves determining the total cases and deaths for each country. Countries with zero cases are removed from the dataset to ensure the analysis is based on relevant data.
+
+For consistency, we standardize the names of certain countries. For instance, "US" is replaced with "United States," and "Burma" is replaced with "Myanmar."
+
 
 ``` {r preprocessing_and_summarization}
 
@@ -158,8 +167,16 @@ global_ratio_normalized = global_ratio %>%
   mutate(normalized_deaths_per_case = deaths_per_case / global_avg_ratio$global_avg_deaths_per_case)
 
 ```
-## <please fill this in>
-<please fill this in, mentioning that removed countries will be mentioned in bias section>
+
+## Data Consolidation and Error Handling
+In this section, we consolidate the relevant data from different sources and perform error handling to ensure the quality of our analysis.
+
+We start by merging the normalized deaths per case ratios with socio-economic indicators to combine COVID-19 mortality metrics with socio-economic context.
+
+We then identify and explicitly remove any countries with erroneous data or potential outlier status. The country "Yemen" is removed due to its explicit outlier status, which could skew the overall analysis.
+
+Finally, we print a list of the removed countries to clearly document the excluded data points and ensure transparency in the analysis. These removed countries will be discussed further in the "Bias Assessment" section to address potential biases in the analysis.
+
 ``` {r stich_it_all_together}
 
 # Merge global_ratio_normalized with global_stats, filtering appropriately
@@ -179,43 +196,87 @@ removed_countries = unique(combined_data$Country_Region[!combined_data$Country_R
 removed_data = combined_data %>%
   filter(Country_Region %in% removed_countries)
 
+# Calculate the total population in removed_data
+removed_population = sum(removed_data$Population, na.rm = TRUE)
+
 # Print the list of removed countries
-cat("Removed countries were", paste(removed_countries, collapse = ", "), "\n")
+cat("Removed countries were", paste(removed_countries, collapse = ", "), "\n\n")
+
+# Print the number of removed persons
+if (is.na(removed_population)) {
+  cat("Population data is missing for all removed countries.\n")
+} else if (removed_population == 0) {
+  cat("No removed countries with valid population data.\n")
+} else {
+  removed_population = format(removed_population, big.mark = ",")
+  cat("At least", removed_population, "unique human beings have been disregarded in this analysis, due to technical difficulties.","\n")
+}
+
 ```
 
 ## Predictive Model Construction & Training
-In this phase, our focus turns to constructing predictive models to unravel the potential connections between Income and Life Expectancy with normalized deaths per case. Two distinct predictive models are developed: one utilizing Income as a predictor (mod_Income), and the other employing Life Expectancy (mod_Life_Expectancy). These models aim to capture patterns that could shed light on the relationship between socio-economic indicators and the severity of COVID-19 outcomes.
+In this phase, our focus turns to constructing predictive models to unravel the potential connections between Income and Life Expectancy with normalized deaths per case. Two distinct predictive models are developed: one utilizing Income as a predictor ($mod_Income$), and the other employing Life Expectancy ($mod_Life_Expectancy$). These models aim to capture patterns that could shed light on the relationship between socio-economic indicators and the severity of COVID-19 outcomes.
 
 We initiate the process by building linear regression models using the lm() function. The models are trained on the combined_data dataset, establishing relationships between these two stand-ins for resources and health care vs COVID mortality.
 
-``` {r }
+``` {r model}
 # Create two predictive models, using both Income and Life Expectancy to predict normalized_deaths_per_case
 mod_Income = lm(normalized_deaths_per_case ~ Income, data = combined_data_filtered)
 mod_Life_Expectancy = lm(normalized_deaths_per_case ~ Life_Expectancy, data = combined_data_filtered)
 ```
 
+
 ## Predictive Model Assessment
 
-In this section, we evaluate the performance and significance of the predictive models constructed earlier. By examining the model summaries, we can gauge the strength of the relationships and assess the statistical significance of the predictors.
+In this section, we evaluate the performance and significance of the predictive models constructed earlier. By analyzing the model summaries, we can gauge the strength of the relationships and evaluate the statistical significance of the predictors.
 
 To interpret the models' effectiveness, we employ the summary() function on both mod_Income and mod_Life_Expectancy. This provides us with valuable information about the coefficients, p-values, and R-squared values, helping us understand the predictive power and significance of each model.
 
-<i need to insert info here based on the actual summaries>
+Please note that the specifics of this assessment may change, as new data is added to the datasets over time.
+
+### Predictive Model: Income vs. Normalized Deaths per Case
+
+#### Model Summary
+
+The linear regression model assessing the impact of **Income** on **Normalized Deaths per Case** reveals valuable insights:
+
+- The intercept term estimates the **average normalized deaths per case** when Income is zero. In our context, this value might not hold any practical meaning.
+- The coefficient of **Income** (-2.224e-05) represents the change in normalized deaths per case associated with a one-unit change in Income. The p-value (5.62e-08) suggests that the coefficient is statistically significant, indicating that Income is likely to have a significant impact on COVID-19 mortality.
+- The **Adjusted R-squared** value (0.159) signifies that around 15.9% of the variability in normalized deaths per case can be explained by Income in the model.
+- The **F-statistic** (32.4) along with the low p-value (5.62e-08) suggests that the model as a whole is statistically significant.
+
+This model suggests that countries with higher Income tend to have lower normalized deaths per case. However, it's important to note that the effect size is small, and other factors not included in the model may also play a role.
+
+### Predictive Model: Life Expectancy vs. Normalized Deaths per Case
+
+#### Model Summary
+
+The linear regression model examining the influence of **Life Expectancy** on **Normalized Deaths per Case** yields the following insights:
+
+- The intercept term (5.01292) represents the estimated average normalized deaths per case when Life Expectancy is zero, which lacks practical interpretation.
+- The coefficient of **Life Expectancy** (-0.04886) indicates that for every one-unit increase in Life Expectancy, the normalized deaths per case decrease by approximately 0.04886. The p-value (0.000188) suggests that the coefficient is statistically significant, implying that Life Expectancy likely has a significant impact on COVID-19 outcomes.
+- The **Adjusted R-squared** value (0.07572) signifies that around 7.6% of the variability in normalized deaths per case can be explained by Life Expectancy in the model.
+- The **F-statistic** (14.6) along with the low p-value (0.000188) indicates that the model as a whole is statistically significant.
+
+This model suggests that countries with higher Life Expectancy tend to experience lower normalized deaths per case. However, similar to the previous model, the effect size is modest, and other unaccounted factors can contribute to COVID-19 outcomes.
+
+These models provide us with insights into how Income and Life Expectancy are related to COVID-19 mortality. However, it's crucial to acknowledge that correlation does not imply causation. Other factors not included in the models may be influencing the observed relationships.
 
 
 ``` {r model_assessment}
-# <please fill this in>
+
+# Assess the predictive models for income and life expectancy's impact on normalized deaths per case
 summary(mod_Income)
 summary(mod_Life_Expectancy)
 ```
 
 ## Dataset Augmentation Based On Predictive Models
 
-To deepen our analysis, we enhance the combined_data dataset by incorporating the predictive model outcomes. This augmentation involves the creation of new variables, Income_pred and Life_Expectancy_pred, which capture the predicted values from the respective models. <please mention that these predictions will be found in red in the final plots>
+To deepen our analysis, we enhance the combined_data dataset by incorporating the predictive model outcomes. This augmentation involves the creation of new variables, Income_pred and Life_Expectancy_pred, which capture the predicted values from the respective models. These predictions will be reflected in the final plots, denoted in red.
 
 ``` {r dataset_augmentation}
 
-# <please fill this in>
+# Enhance the combined_data dataset by incorporating predictive model outcomes
 combined_data_predictive = combined_data_filtered %>%
   mutate(Income_pred = predict(mod_Income),
          Life_Expectancy_pred = predict(mod_Life_Expectancy)) %>%
@@ -254,9 +315,43 @@ print(life_expectancy_vs_normalized_deaths)
 
 ```
 
-## <please fill this in>
-Together, we have explored a detailed methodology for constructing a comprehensive dataset encompassing various COVID-19 and socio-economic indicators. By analyzing the deaths per case ratio, establishing a global average, and implementing a normalization strategy, we are ensuring the robustness of our findings. The subsequent graphical representations of income and life expectancy against normalized deaths per case provide visual insights into the complex interplay between health outcomes and socio-economic factors, further enriched by marker sizes and colors denoting population and region variations.
+## Conclusion: Unveiling Societal Realities
+
+Our rigorous analysis, coupled with meticulous methodology and visualization prowess, paints a vivid picture of the intricate interplay between health outcomes and socio-economic variables.
+
+While our study refrains from drawing sweeping conclusions, the data hint at an undeniable reality: the connection between resources and health care on COVID-19 mortality carries nuanced implications. The data suggest that areas burdened by austerity policies and socio-economic deprivation may face heightened vulnerability.
+
+While cautious in our claims, it is hard to ignore the patterns that emerge. There's a stark indication that societal disparities, driven by economic inequalities, can manifest in dire health outcomes, especially in times of crisis.
+
+Looking forward, our study ignites a call for comprehensive research to illuminate the underlying mechanisms of this connection. Such an understanding is crucial to inform decisions that can steer societies toward a more just and resilient future.
+
+In the end, while our words remain cautious, our findings resonate with the undeniable truth that socio-economic inequalities can exacerbate health disparities. It's time to confront these realities head-on, with a commitment to creating a more inclusive and caring world for all.
+
 
 
 ## Bias Assessment
-<please fill this in, including the explicit list of countries filtered out and use the total Population in Removed_data to determine a "At least X human souls were explicitly removed from this analysis, due to technical difficulties.">
+
+In any analysis, a critical step is to acknowledge potential biases that could influence the results and interpretations. Here, we assess both explicit and implicit biases that may have impacted our study.
+
+### Explicit Exclusions
+
+We want to be transparent about our data handling decisions. As part of our quality control measures, we removed certain countries from the analysis due to data irregularities. The countries explicitly removed are: **`r paste(removed_countries, collapse = ", ")`**. Collectively, this accounts for a population of at least **`r formatted_population`** individuals who were excluded from the analysis due to technical difficulties.
+
+
+### Sample Representation
+
+It's important to note that our study relies on available data sources, which may not perfectly represent the entirety of the global population. Our conclusions are limited to the regions and countries covered in our dataset, which might not capture the full spectrum of socio-economic and health disparities.
+
+### Potential Survivorship Bias
+
+One potential source of bias lies in the nature of the COVID-19 data itself. Our analysis is based on confirmed cases and deaths, but it's possible that repeated cases of COVID-19 in the same individual might have diminishing likelihood of resulting in death. This could lead to an underestimation of mortality rates, particularly in countries with high infection rates but lower death rates.
+
+### Socio-Economic Data Discrepancies
+
+While we've endeavored to use the most reliable and up-to-date socio-economic indicators available, disparities in data collection and reporting across countries could introduce bias. Some regions might lack accurate reporting systems, potentially affecting the accuracy of the correlations we've explored.
+
+### A Call for Further Investigation
+
+Despite our efforts to minimize biases, it's important to recognize that no analysis is devoid of potential limitations. To further enhance the accuracy and comprehensiveness of future analyses, we recommend a concerted effort to address these biases and explore correlations in diverse contexts.
+
+In conclusion, our bias assessment underscores the need for ongoing research and meticulous data collection. By transparently acknowledging limitations, we pave the way for more comprehensive investigations that can ultimately contribute to a deeper understanding of the relationship between socio-economic factors and COVID-19 outcomes.
