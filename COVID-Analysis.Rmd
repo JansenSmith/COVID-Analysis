@@ -1,5 +1,5 @@
 ---
-title: "COVID Analysis - Unveiling Chronological Periodicity"
+title: "COVID Analysis - Assessing Impact of Resources and Health Care on COVID-19 Mortality"
 author: "Jansen Smith"
 date: "`r Sys.Date()`"
 output:
@@ -13,13 +13,11 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Purpose
 
-This is an analysis of NYPD shooting incidents occurring from the start of 2006 to the end of 2022. The data and analysis presented herein is an effort to understand and analyze the provided data and to draw some meaningful conclusions as part of the “Data Science As A Field Course” at UC Boulder in the Summer 2 session in 2023.
-Due to the source of the data provided, all analysis should be considered purely conjectural.
-In particular, this report seeks to establish that the NYPD's reported shooting data demonstrates periodicity by the time of year.
+<please fill this in>
 
 ## Data Source and Description
 
-The data was obtained from NYC's open data API and contains information on NYPD shooting incidents. The dataset includes columns like OCCUR_DATE (date of incident), to which columns such as Week_of_Year were added to facilitate analysis.
+<please fill this in>
 
 
 ## Importing required libraries
@@ -40,35 +38,27 @@ library(lubridate)
 
 ## COVID-19 data import
 
-Begin by reading in cases and deaths data from four main csv files, over US and global scope.
+Begin by reading in cases and deaths data from two main csv files, over global scope.
 
 ```{r import}
+
+# These two sources were provided by the professor.
 url = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/"
-filenames = c("time_series_covid19_confirmed_global.csv",  "time_series_covid19_deaths_global.csv", "time_series_covid19_confirmed_US.csv",  "time_series_covid19_deaths_US.csv")
+filenames = c("time_series_covid19_confirmed_global.csv",  "time_series_covid19_deaths_global.csv")
 urls = str_c(url, filenames)
 
-global_cases = read_csv(urls[1])
-global_deaths = read_csv(urls[2])
-US_cases = read_csv(urls[3])
-US_deaths = read_csv(urls[4])
+# Read CSV files and suppress messages about column types
+global_cases = read_csv(urls[1], show_col_types = FALSE)
+global_deaths = read_csv(urls[2], show_col_types = FALSE)
 
-
-
-#data = read_csv(url)
-#data = data %>%
-#  mutate(OCCUR_DATE = mdy(OCCUR_DATE), Week_of_Year = lubridate::week(OCCUR_DATE)) %>%
-#  select(-X_COORD_CD, -Y_COORD_CD, -Latitude, -Longitude, -Lon_Lat, -BORO, -LOC_OF_OCCUR_DESC, -PRECINCT, -JURISDICTION_CODE, -LOC_CLASSFCTN_DESC, -LOCATION_DESC, -STATISTICAL_MURDER_FLAG, -PERP_AGE_GROUP, -PERP_SEX, -PERP_RACE, OCCUR_TIME, -VIC_AGE_GROUP, -VIC_SEX, -VIC_RACE)
-#spec(data)
-#head(data, 20)
-#summary(data)
 ```
 
 ## Tidy global data
-After looking at global_cases and global_deaths, we would like to tidy those datasets and put each variable (date, cases, deaths) in their own column.
-Also, we don't need Lat and Long for our analysis, so we will get rid of those and rename Region and State to be more R friendly.
+<please fill this in>
 
 ```{r tidy_global_data}
 
+# Tidying the global cases, as demonstrated by the professor.
 global_cases_tidy = global_cases %>%
   rename(Province_State = "Province/State", Country_Region = "Country/Region") %>%
   select("Province_State", "Country_Region", matches("^\\d{1,2}/\\d{1,2}/\\d{2}$")) %>%
@@ -78,6 +68,7 @@ global_cases_tidy = global_cases %>%
                values_to = "cases") %>%
   mutate(date = as.Date(date, format = "%m/%d/%y"))
 
+# Tidying the global deaths, as demonstrated by the professor.
 global_deaths_tidy <- global_deaths %>%
   rename(Province_State = "Province/State", Country_Region = "Country/Region") %>%
   select("Province_State", "Country_Region", matches("^\\d{1,2}/\\d{1,2}/\\d{2}$")) %>%
@@ -87,150 +78,36 @@ global_deaths_tidy <- global_deaths %>%
   mutate(date = as.Date(date, format = "%m/%d/%y"))
 ```
 
-## Tidy US data
-After looking at US_cases and US_deaths, we would like to tidy those datasets and put each variable (date, cases, deaths) in their own column.
-Also, we don't need Lat and Long for our analysis, so we will get rid of those and rename Region and State to be more R friendly.
-
-``` {r tidy_US_data}
-US_cases_tidy = US_cases %>%
-  pivot_longer(cols = -(UID:Combined_Key),
-               names_to = "date",
-               values_to = "cases") %>%
-  mutate(date = as.Date(date, format = "%m/%d/%y")) %>%
-  select(Admin2:cases) %>%
-  select(-c(Lat, Long_))
-
-
-US_deaths_tidy = US_deaths %>%
-  pivot_longer(cols = -(UID:Population),
-               names_to = "date",
-               values_to = "deaths") %>%
-  mutate(date = as.Date(date, format = "%m/%d/%y")) %>%
-  select(Admin2:deaths) %>%
-  select(-c(Lat, Long_))
-
-```
-
 ## Join datasets
 Merge datasets to allow for cases and deaths to be separate variables in the same dataset.
 ``` {r merge_data}
-global = global_cases_tidy %>%
-  full_join(global_deaths_tidy) %>%
-  filter(cases > 0) %>%
-  unite("Combined_Key", c(Province_State, Country_Region),
-        sep = ", ",
-        na.rm = TRUE,
-        remove = FALSE)
 
-uid_lookup_url <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/UID_ISO_FIPS_LookUp_Table.csv"
-
-uid = read_csv(uid_lookup_url) %>%
-  select(-c(Lat, Long_, Combined_Key, code3, iso2, iso3, Admin2, FIPS, UID))
-
-global = global %>%
-  left_join(uid, by = c("Province_State", "Country_Region"))
-summary(global)
-
-US = US_cases_tidy %>%
-  full_join(US_deaths_tidy) %>%
-  filter(Population > 1)
-summary(US)
-```
-``` {r US_summaries}
-
-US_by_state = US %>%
-  group_by(Province_State, Country_Region, date) %>%
-  summarize(cases = sum(cases), deaths = sum(deaths),
-            Population = sum(Population)) %>%
-  mutate(cases_per_thou = cases * 1000 / Population) %>%
-  mutate(deaths_per_thou = deaths * 1000 / Population) %>%
-  mutate(cases_per_mill = cases * 1000000 / Population) %>%
-  mutate(deaths_per_mill = deaths * 1000000 / Population) %>%
-  mutate(new_cases = cases - lag(cases),
-         new_deaths = deaths - lag(deaths)) %>%
-  ungroup()
-
-US_totals = US_by_state %>%
-  group_by(Country_Region, date) %>%
-  summarize(cases = sum(cases), deaths = sum(deaths),
-            Population = sum(Population)) %>%
-  mutate(cases_per_thou = cases * 1000 / Population) %>%
-  mutate(deaths_per_thou = deaths * 1000 / Population) %>%
-  mutate(cases_per_mill = cases * 1000000 / Population) %>%
-  mutate(deaths_per_mill = deaths * 1000000 / Population) %>%
-  mutate(new_cases = cases - lag(cases),
-         new_deaths = deaths - lag(deaths)) %>%
-  ungroup()
-
-cases_plot = ggplot(data = US_totals, aes(x = date, y = cases_per_mill)) +
-  geom_line(color = "blue") +
-  labs(title = "COVID-19 Cases per Million in the US",
-       y = "Cases per Million",
-       x = "Date") +
-  theme_minimal()
-
-deaths_plot = ggplot(data = US_totals, aes(x = date, y = deaths_per_mill)) +
-  geom_line(color = "red") +
-  labs(title = "COVID-19 Deaths per Million in the US",
-       y = "Deaths per Million",
-       x = "Date") +
-  theme_minimal()
-
-# Create a 2x1 grid layout for plots
-par(mfrow = c(2, 1))
-
-# Plot the cases per million
-print(cases_plot)
-
-# Plot the deaths per million
-print(deaths_plot)
-
-# Reset the layout to default
-par(mfrow = c(1, 1))
-
-US_totals %>%
-  filter(cases > 0) %>%
-  ggplot(aes(x = date, y = cases)) + geom_line(aes(color = "cases")) + geom_point(aes(color = "cases")) + geom_line(aes(y = deaths, color = "deaths")) + geom_point(aes(y = deaths, color = "deaths")) + scale_y_log10() + theme(legend.position="bottom", axis.text.x = element_text(angle = 90)) + labs(title = "COVID19 in US", y= NULL)
-
-US_totals %>%
-  filter(cases > 0, new_cases >= 0, !is.na(new_cases)) %>%
-  ggplot(aes(x = date, y = new_cases)) + geom_line(aes(color = "new_cases")) + geom_point(aes(color = "new_cases")) + geom_line(aes(y = new_deaths, color = "new_deaths")) + geom_point(aes(y = new_deaths, color = "new_deaths")) + scale_y_log10() + theme(legend.position="bottom", axis.text.x = element_text(angle = 90)) + labs(title = "COVID19 in US", y= NULL)
-
-state = "New York"
-US_by_state %>%
-  filter(Province_State == state) %>%
-  filter(cases>0, new_cases >= 0, !is.na(new_cases)) %>%
-  ggplot(aes(x = date, y = cases)) + geom_line(aes(color = "cases")) + geom_point(aes(color = "cases")) + geom_line(aes(y = deaths, color = "deaths")) + geom_point(aes(y = deaths, color = "deaths")) + scale_y_log10() + theme(legend.position="bottom", axis.text.x = element_text(angle = 90)) + labs(title = str_c("COVID19 in ", state), y= NULL)
-
+# <please fill this in>
+suppressMessages({ # Messages suppressed for aesthetic reasons. Code runs without error.
+  global = global_cases_tidy %>%
+    full_join(global_deaths_tidy) %>%
+    filter(cases > 0) %>%
+    unite("Combined_Key", c(Province_State, Country_Region),
+          sep = ", ",
+          na.rm = TRUE,
+          remove = FALSE)
+})
 ```
 
-``` {r class_model}
-latest_date = max(US_by_state$date)
-
-US_state_totals = US_by_state %>%
-  filter(date == latest_date) %>%
-  select(-date)
-mod = lm(deaths_per_thou ~ cases_per_thou, data = US_state_totals)
-summary(mod)
-
-US_tot_w_pred = US_state_totals %>% mutate(pred = predict(mod))
-
-US_tot_w_pred %>% ggplot() + geom_point(aes(x = cases_per_thou, y = deaths_per_thou), color = "blue") + geom_point(aes(x = cases_per_thou, y = pred), color = "red")
-
-```
 
 ## Global Lifespan & Income Per Capita Import
-Importing Hans Rosling's original dataset for The Joy of Stats, maintained by his organization GapMinder since his death in 2017. This dataset 
+Importing Hans Rosling's custom dataset for The Joy of Stats, maintained by his organization GapMinder since his death in 2017. This dataset <please fill this in>
 ``` {r import_hans_rosling}
 
+# This csv URL is a permalink that will remain reproducible.
 global_stats_url = "https://raw.githubusercontent.com/JansenSmith/COVID-Analysis/main/JoyOfStats_data.csv"
-global_stats = read_csv(global_stats_url)
-
+global_stats = read_csv(global_stats_url, show_col_types = FALSE)
 ```
 
-## Model using JoyOfStats
+## <please fill this in>
+<please fill this in>
 
-``` {r my_model}
+``` {r preprocessing_and_summarization}
 
 # Calculate the latest date in the global dataset
 latest_date = max(global$date)
@@ -248,6 +125,17 @@ aggregated_data = latest_data %>%
   summarize(cases = sum(cases), deaths = sum(deaths)) %>%
   filter(cases > 0)  # Remove countries with no cases
 
+# Filter the global_stats dataframe to isolate the relevant year
+global_stats_latest_year = global_stats %>%
+  filter(latest_year == as.numeric(str_extract(`Year 1`, "\\d{4}"))) %>%
+  rename(Life_Expectancy = "Life Expectancy")
+
+```
+
+## Deaths per Case Calculation and Global Average
+To gain insights into the impact of COVID-19, we are computing the deaths per case ratio for each country by dividing the total deaths by the corresponding total cases. Furthermore, we are establishing the global average deaths per case by aggregating the deaths and cases across all countries and then calculating the ratio. This metric serves as a baseline for normalization.
+
+``` {r deaths_per_case}
 # Calculate deaths per case ratio for each country based on the latest data
 global_ratio = aggregated_data %>%
   mutate(deaths_per_case = deaths / cases) %>%
@@ -257,34 +145,77 @@ global_ratio = aggregated_data %>%
 global_avg_ratio = global_ratio %>%
   summarise(global_avg_deaths_per_case = sum(deaths) / sum(cases))
 
+```
+
+## Normalization Strategy
+Given the inherent challenges posed by extremely small values resulting from deaths per case calculations, we are implementing a normalization technique. By dividing each country's deaths per case ratio by the global average, we are creating a normalized deaths per case metric. This adjustment ensures that the analysis remains robust and interpretable across the entire dataset.
+``` {r normalization}
+
 # Calculate normalized deaths per case metric
 global_ratio_normalized = global_ratio %>%
   mutate(normalized_deaths_per_case = deaths_per_case / global_avg_ratio$global_avg_deaths_per_case)
 
-# Filter the global_stats dataframe to isolate the relevant year
-global_stats_latest_year = global_stats %>%
-  filter(latest_year == as.numeric(str_extract(`Year 1`, "\\d{4}"))) %>%
-  rename(Life_Expectancy = "Life Expectancy")
-
+```
+## <please fill this in>
+<please fill this in, mentioning that removed countries will be mentioned in bias section>
+``` {r stich_it_all_together}
 # Merge global_ratio_normalized with global_stats, filtering appropriately
 combined_data = global_ratio_normalized %>%
   left_join(global_stats_latest_year, by = c("Country_Region" = "country (income_per_person_gdpperc.csv)")) %>%
   filter(!is.na(Income) & !is.na(normalized_deaths_per_case) & !is.na(Life_Expectancy) & !is.na(Population) & !is.na(Region)) %>%
   select(Country_Region, normalized_deaths_per_case, Income, Life_Expectancy, Population, Region) %>%
   filter(Country_Region != "Yemen") # Explicitly removed due to outlier status
+```
 
+## Predictive Model Construction & Training
+In this phase, our focus turns to constructing predictive models to unravel the potential connections between Income and Life Expectancy with normalized deaths per case. Two distinct predictive models are developed: one utilizing Income as a predictor (mod_Income), and the other employing Life Expectancy (mod_Life_Expectancy). These models aim to capture patterns that could shed light on the relationship between socio-economic indicators and the severity of COVID-19 outcomes.
+
+We initiate the process by building linear regression models using the lm() function. The models are trained on the combined_data dataset, establishing relationships between these two stand-ins for wealth and health care vs COVID mortality.
+
+``` {r }
 # Create two predictive models, using both Income and Life Expectancy to predict normalized_deaths_per_case
 mod_Income = lm(normalized_deaths_per_case ~ Income, data = combined_data)
 mod_Life_Expectancy = lm(normalized_deaths_per_case ~ Life_Expectancy, data = combined_data)
-combined_data_predictive = combined_data %>%
-  mutate(Income_pred = predict(mod_Income),
-         Life_Expectancy_pred = predict(mod_Life_Expectancy))
+```
+
+## Predictive Model Assessment
+
+In this section, we evaluate the performance and significance of the predictive models constructed earlier. By examining the model summaries, we can gauge the strength of the relationships and assess the statistical significance of the predictors.
+
+To interpret the models' effectiveness, we employ the summary() function on both mod_Income and mod_Life_Expectancy. This provides us with valuable information about the coefficients, p-values, and R-squared values, helping us understand the predictive power and significance of each model.
+
+<i need to insert info here based on the actual summaries>
+
+
+``` {r model_assessment}
+# <please fill this in>
 summary(mod_Income)
 summary(mod_Life_Expectancy)
+```
+
+## Dataset Augmentation Based On Predictive Models
+
+To deepen our analysis, we enhance the combined_data dataset by incorporating the predictive model outcomes. This augmentation involves the creation of new variables, Income_pred and Life_Expectancy_pred, which capture the predicted values from the respective models. <please mention that these predictions will be found in red in the final plots>
+
+``` {r dataset_augmentation}
+
+# <please fill this in>
+combined_data_predictive = combined_data %>%
+  mutate(Income_pred = predict(mod_Income),
+         Life_Expectancy_pred = predict(mod_Life_Expectancy)) %>%
+  select(1:Income, Income_pred, Life_Expectancy, Life_Expectancy_pred, everything())
+```
+
+## Graphical Representation and Visualization
+
+We are proceeding to visualize the relationships between income and normalized deaths per case, as well as life expectancy and normalized deaths per case. Each country's marker size in the plots is being scaled proportionally to its population, effectively conveying the relative impact of COVID-19. To enhance interpretability, countries are being color-coded based on their respective regions, aiding in the identification of trends and patterns. <please mention that the predictive whatevers are dashed red lines but use more words>
+
+``` {r visualization}
 
 # Create a scatter plot for income vs. normalized deaths per case
 income_vs_normalized_deaths = ggplot(combined_data_predictive, aes(x = Income, y = normalized_deaths_per_case)) +
   geom_point(aes(size = Population, color = Region)) +
+  geom_line(aes(x = Income, y = Income_pred), linetype = "dashed", color = "red", size = 1) +  # Add  red dashed line visualizing the predictive model
   scale_size_continuous(range = c(3, 20)) +
   labs(title = "Income vs. Normalized Deaths per Case",
        x = "Income Per Capita",
@@ -294,6 +225,7 @@ income_vs_normalized_deaths = ggplot(combined_data_predictive, aes(x = Income, y
 # Create a scatter plot for life expectancy vs. normalized deaths per case
 life_expectancy_vs_normalized_deaths = ggplot(combined_data_predictive, aes(x = Life_Expectancy, y = normalized_deaths_per_case)) +
   geom_point(aes(size = Population, color = Region)) +
+  geom_line(aes(x = Life_Expectancy, y = Life_Expectancy_pred), linetype = "dashed", color = "red", size = 1) +  # Add  red dashed line visualizing the predictive model
   scale_size_continuous(range = c(3, 20)) +
   labs(title = "Life Expectancy vs. Normalized Deaths per Case",
        x = "Average Life Expectancy",
@@ -306,15 +238,9 @@ print(life_expectancy_vs_normalized_deaths)
 
 ```
 
-## Analysis
+## <please fill this in>
+Together, we have explored a detailed methodology for constructing a comprehensive dataset encompassing various COVID-19 and socio-economic indicators. By analyzing the deaths per case ratio, establishing a global average, and implementing a normalization strategy, we are ensuring the robustness of our findings. The subsequent graphical representations of income and life expectancy against normalized deaths per case provide visual insights into the complex interplay between health outcomes and socio-economic factors, further enriched by marker sizes and colors denoting population and region variations.
 
-- As we can see from the shooting incidents over time, the data shows yearly periodicity.
-- When aggregated by week, this periodicity can be seen more clearly, with significantly more incidents occurring during the summer months.
-- Based on these findings, there is a potential argument for the NYPD to reevaluate its approach towards public safety and community support during the winter months, considering the demonstrated slowdown in shooting activity during that time.
 
 ## Bias Assessment
-
-- The format of the analysis was specifically chosen to avoid known sources of bias, with the notable exception of inherent bias due to trusting NYPD incident reporting sources.
-- Relying on the NYPD's self-reported statistics to establish groundtruth crime data is itself inherently flawed. For example, the NYPD is likely to diminish the prelevance of crimes by the NYPD itself.
-- My hope is that chronological periodicity is a topic that would be cross-cultural and thus mitigate the impacts of my own cultural bias.
-- Political bias, however, should not be discounted. It is possible that the data suggests patterns that the author's mistrust of the NYPD may leave uncovered.
+<please fill this in>
