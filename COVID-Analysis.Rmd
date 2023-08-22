@@ -13,11 +13,11 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Purpose
 
-<please fill this in>
+The purpose of this analysis is to assess the impact of resources and access to health care on COVID-19 mortality. This is achieved by investigating the relationships between a country's per capita income, which serves as a proxy for available resources, and life expectancy, which acts as a proxy for general access to health care. By examining these relationships and their correlation with normalized deaths per case due to COVID-19, we aim to uncover insights into how socioeconomic factors may influence COVID-19 outcomes on a global scale.
 
 ## Data Source and Description
 
-<please fill this in>
+The primary data sources for this analysis are COVID-19 cases and deaths data obtained from the John Hopkins University's GitHub repository. Additionally, we are using Hans Rosling's dataset from GapMinder, which provides information on income, life expectancy, population, and region for various countries.
 
 
 ## Importing required libraries
@@ -54,7 +54,7 @@ global_deaths = read_csv(urls[2], show_col_types = FALSE)
 ```
 
 ## Tidy global data
-<please fill this in>
+To facilitate analysis, the global COVID-19 cases and deaths data are tidied and transformed. This involves renaming columns, selecting relevant date columns, and pivoting the data to a longer format. By organizing the data in this manner, we create a structured dataset that is amenable to further manipulation and analysis.
 
 ```{r tidy_global_data}
 
@@ -232,7 +232,7 @@ We are proceeding to visualize the relationships between income and normalized d
 income_vs_normalized_deaths = ggplot(combined_data_predictive, aes(x = Income, y = normalized_deaths_per_case)) +
   geom_point(aes(size = Population, color = Region)) +
   geom_line(aes(x = Income, y = Income_pred), linetype = "dashed", color = "red", size = 1) +  # Add  red dashed line visualizing the predictive model
-  scale_size_continuous(range = c(3, 20)) +
+  scale_size_continuous(range = c(2, 20)) +
   labs(title = "Income vs. Normalized Deaths per Case",
        x = "Income Per Capita",
        y = "Normalized Deaths per Case") +
@@ -242,7 +242,7 @@ income_vs_normalized_deaths = ggplot(combined_data_predictive, aes(x = Income, y
 life_expectancy_vs_normalized_deaths = ggplot(combined_data_predictive, aes(x = Life_Expectancy, y = normalized_deaths_per_case)) +
   geom_point(aes(size = Population, color = Region)) +
   geom_line(aes(x = Life_Expectancy, y = Life_Expectancy_pred), linetype = "dashed", color = "red", size = 1) +  # Add  red dashed line visualizing the predictive model
-  scale_size_continuous(range = c(3, 20)) +
+  scale_size_continuous(range = c(2, 20)) +
   labs(title = "Life Expectancy vs. Normalized Deaths per Case",
        x = "Average Life Expectancy",
        y = "Normalized Deaths per Case") +
