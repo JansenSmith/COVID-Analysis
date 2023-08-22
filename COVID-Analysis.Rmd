@@ -124,7 +124,8 @@ aggregated_data = latest_data %>%
   group_by(Country_Region) %>%
   summarize(cases = sum(cases), deaths = sum(deaths)) %>%
   filter(cases > 0) %>%  # Remove countries with no cases
-  mutate(Country_Region = ifelse(Country_Region == "US", "United States", Country_Region))
+  mutate(Country_Region = ifelse(Country_Region == "US", "United States", Country_Region)) %>%
+  mutate(Country_Region = ifelse(Country_Region == "Burma", "Myanmar", Country_Region))
 
 # Filter the global_stats dataframe to isolate the relevant year
 global_stats_latest_year = global_stats %>%
@@ -160,23 +161,37 @@ global_ratio_normalized = global_ratio %>%
 ## <please fill this in>
 <please fill this in, mentioning that removed countries will be mentioned in bias section>
 ``` {r stich_it_all_together}
+
 # Merge global_ratio_normalized with global_stats, filtering appropriately
 combined_data = global_ratio_normalized %>%
   left_join(global_stats_latest_year, by = c("Country_Region" = "country (income_per_person_gdpperc.csv)")) %>%
+  select(Country_Region, normalized_deaths_per_case, Income, Life_Expectancy, Population, Region)
+
+# Identify and remove countries with erroneous data
+combined_data_filtered = combined_data %>%
   filter(!is.na(Income) & !is.na(normalized_deaths_per_case) & !is.na(Life_Expectancy) & !is.na(Population) & !is.na(Region)) %>%
-  select(Country_Region, normalized_deaths_per_case, Income, Life_Expectancy, Population, Region) %>%
   filter(Country_Region != "Yemen") # Explicitly removed due to outlier status
+
+# Determine removed countries
+removed_countries = unique(combined_data$Country_Region[!combined_data$Country_Region %in% combined_data_filtered$Country_Region])
+
+# Create a copy of combined_data that only contains the removed countries
+removed_data = combined_data %>%
+  filter(Country_Region %in% removed_countries)
+
+# Print the list of removed countries
+cat("Removed countries were", paste(removed_countries, collapse = ", "), "\n")
 ```
 
 ## Predictive Model Construction & Training
 In this phase, our focus turns to constructing predictive models to unravel the potential connections between Income and Life Expectancy with normalized deaths per case. Two distinct predictive models are developed: one utilizing Income as a predictor (mod_Income), and the other employing Life Expectancy (mod_Life_Expectancy). These models aim to capture patterns that could shed light on the relationship between socio-economic indicators and the severity of COVID-19 outcomes.
 
-We initiate the process by building linear regression models using the lm() function. The models are trained on the combined_data dataset, establishing relationships between these two stand-ins for wealth and health care vs COVID mortality.
+We initiate the process by building linear regression models using the lm() function. The models are trained on the combined_data dataset, establishing relationships between these two stand-ins for resources and health care vs COVID mortality.
 
 ``` {r }
 # Create two predictive models, using both Income and Life Expectancy to predict normalized_deaths_per_case
-mod_Income = lm(normalized_deaths_per_case ~ Income, data = combined_data)
-mod_Life_Expectancy = lm(normalized_deaths_per_case ~ Life_Expectancy, data = combined_data)
+mod_Income = lm(normalized_deaths_per_case ~ Income, data = combined_data_filtered)
+mod_Life_Expectancy = lm(normalized_deaths_per_case ~ Life_Expectancy, data = combined_data_filtered)
 ```
 
 ## Predictive Model Assessment
@@ -201,7 +216,7 @@ To deepen our analysis, we enhance the combined_data dataset by incorporating th
 ``` {r dataset_augmentation}
 
 # <please fill this in>
-combined_data_predictive = combined_data %>%
+combined_data_predictive = combined_data_filtered %>%
   mutate(Income_pred = predict(mod_Income),
          Life_Expectancy_pred = predict(mod_Life_Expectancy)) %>%
   select(1:Income, Income_pred, Life_Expectancy, Life_Expectancy_pred, everything())
@@ -244,4 +259,4 @@ Together, we have explored a detailed methodology for constructing a comprehensi
 
 
 ## Bias Assessment
-<please fill this in>
+<please fill this in, including the explicit list of countries filtered out and use the total Population in Removed_data to determine a "At least X human souls were explicitly removed from this analysis, due to technical difficulties.">
