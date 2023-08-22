@@ -8,7 +8,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE,tidy.opts = list(width.cutoff = 60), tidy = TRUE)
 ```
 
 ## Purpose
@@ -139,7 +139,10 @@ aggregated_data = latest_data %>%
   mutate(Country_Region = ifelse(Country_Region == "US", 
                                  "United States", Country_Region)) %>%
   mutate(Country_Region = ifelse(Country_Region == "Burma", 
-                                 "Myanmar", Country_Region))
+                                 "Myanmar", Country_Region)) %>%
+  mutate(Country_Region = ifelse(Country_Region == "Taiwan*", 
+                                 "Taiwan", Country_Region))
+  
 
 # Filter the global_stats dataframe to isolate the relevant year
 global_stats_latest_year = global_stats %>%
@@ -183,7 +186,7 @@ We then identify and explicitly remove any countries with erroneous data or pote
 
 Finally, we print a list of the removed countries to clearly document the excluded data points and ensure transparency in the analysis. These removed countries will be discussed further in the "Bias Assessment" section to address potential biases in the analysis.
 
-``` {r stich_it_all_together}
+``` {r stich_it_all_together, results='asis', echo=TRUE}
 
 # Merge global_ratio_normalized with global_stats, filtering appropriately
 combined_data = global_ratio_normalized %>%
@@ -211,10 +214,7 @@ removed_data = combined_data %>%
 removed_population = sum(removed_data$Population, na.rm = TRUE)
 
 # Print the list of removed countries
-cat("Removed countries were", strwrap(
-  paste("Removed countries were", paste(removed_countries_list, collapse = ", ")), 
-  width = 80  # You can adjust the width as needed
-  ), "\n\n")
+cat("Removed countries were", paste(removed_countries, collapse = ", "), ".\n\n")
 
 # Print the number of removed persons
 if (is.na(removed_population)) {
@@ -234,9 +234,12 @@ In this phase, our focus turns to constructing predictive models to unravel the 
 We initiate the process by building linear regression models using the lm() function. The models are trained on the combined_data dataset, establishing relationships between these two stand-ins for resources and health care vs COVID mortality.
 
 ``` {r model}
-# Create two predictive models, using both Income and Life Expectancy to predict normalized_deaths_per_case
-mod_Income = lm(normalized_deaths_per_case ~ Income, data = combined_data_filtered)
-mod_Life_Expectancy = lm(normalized_deaths_per_case ~ Life_Expectancy, data = combined_data_filtered)
+# Create two predictive models, using both Income and Life Expectancy to 
+#  predict normalized_deaths_per_case
+mod_Income = lm(normalized_deaths_per_case ~ Income, 
+                data = combined_data_filtered)
+mod_Life_Expectancy = lm(normalized_deaths_per_case ~ Life_Expectancy, 
+                         data = combined_data_filtered)
 ```
 
 
@@ -279,7 +282,8 @@ These models provide us with insights into how Income and Life Expectancy are re
 
 ``` {r model_assessment}
 
-# Assess the predictive models for income and life expectancy's impact on normalized deaths per case
+# Assess the predictive models for income and life expectancy's impact 
+#  on normalized deaths per case
 summary(mod_Income)
 summary(mod_Life_Expectancy)
 ```
@@ -304,9 +308,13 @@ We are proceeding to visualize the relationships between income and normalized d
 ``` {r visualization}
 
 # Create a scatter plot for income vs. normalized deaths per case
-income_vs_normalized_deaths = ggplot(combined_data_predictive, aes(x = Income, y = normalized_deaths_per_case)) +
+income_vs_normalized_deaths = 
+  ggplot(combined_data_predictive, aes(x = Income, 
+                                       y = normalized_deaths_per_case)) +
   geom_point(aes(size = Population, color = Region)) +
-  geom_line(aes(x = Income, y = Income_pred), linetype = "dashed", color = "red", size = 1) +  # Add  red dashed line visualizing the predictive model
+  geom_line(aes(x = Income, y = Income_pred), 
+            linetype = "dashed", color = "red", 
+            linewidth = 1) +  # Add  red dashed line visualizing the predictive model
   scale_size_continuous(range = c(2, 20)) +
   labs(title = "Income vs. Normalized Deaths per Case",
        x = "Income Per Capita",
@@ -314,9 +322,13 @@ income_vs_normalized_deaths = ggplot(combined_data_predictive, aes(x = Income, y
   theme_minimal()
 
 # Create a scatter plot for life expectancy vs. normalized deaths per case
-life_expectancy_vs_normalized_deaths = ggplot(combined_data_predictive, aes(x = Life_Expectancy, y = normalized_deaths_per_case)) +
+life_expectancy_vs_normalized_deaths = 
+  ggplot(combined_data_predictive, aes(x = Life_Expectancy, 
+                                       y = normalized_deaths_per_case)) +
   geom_point(aes(size = Population, color = Region)) +
-  geom_line(aes(x = Life_Expectancy, y = Life_Expectancy_pred), linetype = "dashed", color = "red", size = 1) +  # Add  red dashed line visualizing the predictive model
+  geom_line(aes(x = Life_Expectancy, y = Life_Expectancy_pred), 
+            linetype = "dashed", color = "red", 
+            linewidth = 1) +  # Add  red dashed line visualizing the predictive model
   scale_size_continuous(range = c(2, 20)) +
   labs(title = "Life Expectancy vs. Normalized Deaths per Case",
        x = "Average Life Expectancy",
