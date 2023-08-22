@@ -233,53 +233,70 @@ global_stats = read_csv(global_stats_url)
 ``` {r my_model}
 
 # Calculate the latest date in the global dataset
-latest_date <- max(global$date)
+latest_date = max(global$date)
 
 # Find the year of the latest date
-latest_year <- year(latest_date)
+latest_year = year(latest_date)
 
 # Filter global_cases_tidy to get the latest data
-latest_data <- global %>%
+latest_data = global %>%
   filter(date == latest_date)
 
+# Aggregate the data at the country level by summing cases and deaths
+aggregated_data = latest_data %>%
+  group_by(Country_Region) %>%
+  summarize(cases = sum(cases), deaths = sum(deaths)) %>%
+  filter(cases > 0)  # Remove countries with no cases
+
 # Calculate deaths per case ratio for each country based on the latest data
-global_ratio <- latest_data %>%
+global_ratio = aggregated_data %>%
   mutate(deaths_per_case = deaths / cases) %>%
   filter(!is.na(deaths_per_case))  # Remove NA values
 
 # Calculate global average deaths per case ratio
-global_avg_ratio <- global_ratio %>%
+global_avg_ratio = global_ratio %>%
   summarise(global_avg_deaths_per_case = sum(deaths) / sum(cases))
 
 # Calculate normalized deaths per case metric
-global_ratio_normalized <- global_ratio %>%
+global_ratio_normalized = global_ratio %>%
   mutate(normalized_deaths_per_case = deaths_per_case / global_avg_ratio$global_avg_deaths_per_case)
 
 # Filter the global_stats dataframe to isolate the relevant year
-global_stats_latest_year <- global_stats %>%
-  filter(latest_year == as.numeric(str_extract(`Year 1`, "\\d{4}")))
+global_stats_latest_year = global_stats %>%
+  filter(latest_year == as.numeric(str_extract(`Year 1`, "\\d{4}"))) %>%
+  rename(Life_Expectancy = "Life Expectancy")
 
 # Merge global_ratio_normalized with global_stats, filtering appropriately
-combined_data <- global_ratio_normalized %>%
+combined_data = global_ratio_normalized %>%
   left_join(global_stats_latest_year, by = c("Country_Region" = "country (income_per_person_gdpperc.csv)")) %>%
-  filter(!is.na(Income) | !is.na(normalized_deaths_per_case) | !is.na(Population) | !is.na(Region)) %>%
-  select(Country_Region, normalized_deaths_per_case, Income, "Life Expectancy", Population, Region)
+  filter(!is.na(Income) & !is.na(normalized_deaths_per_case) & !is.na(Life_Expectancy) & !is.na(Population) & !is.na(Region)) %>%
+  select(Country_Region, normalized_deaths_per_case, Income, Life_Expectancy, Population, Region) %>%
+  filter(Country_Region != "Yemen") # Explicitly removed due to outlier status
+
+# Create two predictive models, using both Income and Life Expectancy to predict normalized_deaths_per_case
+mod_Income = lm(normalized_deaths_per_case ~ Income, data = combined_data)
+mod_Life_Expectancy = lm(normalized_deaths_per_case ~ Life_Expectancy, data = combined_data)
+combined_data_predictive = combined_data %>%
+  mutate(Income_pred = predict(mod_Income),
+         Life_Expectancy_pred = predict(mod_Life_Expectancy))
+summary(mod_Income)
+summary(mod_Life_Expectancy)
 
 # Create a scatter plot for income vs. normalized deaths per case
-income_vs_normalized_deaths <- ggplot(combined_data, aes(x = Income, y = normalized_deaths_per_case)) +
+income_vs_normalized_deaths = ggplot(combined_data_predictive, aes(x = Income, y = normalized_deaths_per_case)) +
   geom_point(aes(size = Population, color = Region)) +
   scale_size_continuous(range = c(3, 20)) +
   labs(title = "Income vs. Normalized Deaths per Case",
-       x = "Income",
+       x = "Income Per Capita",
        y = "Normalized Deaths per Case") +
   theme_minimal()
 
 # Create a scatter plot for life expectancy vs. normalized deaths per case
-life_expectancy_vs_normalized_deaths <- ggplot(combined_data, aes(x = "Life Expectancy", y = normalized_deaths_per_case)) +
+life_expectancy_vs_normalized_deaths = ggplot(combined_data_predictive, aes(x = Life_Expectancy, y = normalized_deaths_per_case)) +
   geom_point(aes(size = Population, color = Region)) +
   scale_size_continuous(range = c(3, 20)) +
   labs(title = "Life Expectancy vs. Normalized Deaths per Case",
-       x = "Life Expectancy",
+       x = "Average Life Expectancy",
        y = "Normalized Deaths per Case") +
   theme_minimal()
 
