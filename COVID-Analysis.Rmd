@@ -142,6 +142,7 @@ US_by_state = US %>%
   group_by(Province_State, Country_Region, date) %>%
   summarize(cases = sum(cases), deaths = sum(deaths),
             Population = sum(Population)) %>%
+  mutate(cases_per_mill = cases * 1000000 / Population) %>%
   mutate(deaths_per_mill = deaths * 1000000 / Population) %>%
   ungroup()
 
@@ -149,8 +150,35 @@ US_totals = US_by_state %>%
   group_by(Country_Region, date) %>%
   summarize(cases = sum(cases), deaths = sum(deaths),
             Population = sum(Population)) %>%
+  mutate(cases_per_mill = cases * 1000000 / Population) %>%
   mutate(deaths_per_mill = deaths * 1000000 / Population) %>%
   ungroup()
+
+cases_plot = ggplot(data = US_totals, aes(x = date, y = cases_per_mill)) +
+  geom_line(color = "blue") +
+  labs(title = "COVID-19 Cases per Million in the US",
+       y = "Cases per Million",
+       x = "Date") +
+  theme_minimal()
+
+deaths_plot = ggplot(data = US_totals, aes(x = date, y = deaths_per_mill)) +
+  geom_line(color = "red") +
+  labs(title = "COVID-19 Deaths per Million in the US",
+       y = "Deaths per Million",
+       x = "Date") +
+  theme_minimal()
+
+# Create a 2x1 grid layout for plots
+par(mfrow = c(2, 1))
+
+# Plot the cases per million
+print(cases_plot)
+
+# Plot the deaths per million
+print(deaths_plot)
+
+# Reset the layout to default
+par(mfrow = c(1, 1))
 
 ```
 # Convert UID to character and exclude incompatible columns
