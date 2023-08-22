@@ -205,13 +205,17 @@ US_by_state %>%
 ```
 
 ``` {r model}
-latest_date <- max(US_by_state$date)
+latest_date = max(US_by_state$date)
 
-US_state_totals <- US_by_state %>%
+US_state_totals = US_by_state %>%
   filter(date == latest_date) %>%
   select(-date)
-mod = lm(deaths_per_thou ~ cases_per_thou, data = US_by_state)
+mod = lm(deaths_per_thou ~ cases_per_thou, data = US_state_totals)
 summary(mod)
+
+US_tot_w_pred = US_state_totals %>% mutate(pred = predict(mod))
+
+US_tot_w_pred %>% ggplot() + geom_point(aes(x = cases_per_thou, y = deaths_per_thou), color = "blue") + geom_point(aes(x = cases_per_thou, y = pred), color = "red")
 
 ```
 
