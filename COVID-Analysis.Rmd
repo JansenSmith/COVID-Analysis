@@ -145,6 +145,13 @@ US_by_state = US %>%
   mutate(deaths_per_mill = deaths * 1000000 / Population) %>%
   ungroup()
 
+US_totals = US_by_state %>%
+  group_by(Country_Region, date) %>%
+  summarize(cases = sum(cases), deaths = sum(deaths),
+            Population = sum(Population)) %>%
+  mutate(deaths_per_mill = deaths * 1000000 / Population) %>%
+  ungroup()
+
 ```
 # Convert UID to character and exclude incompatible columns
 global_cases <- global_cases %>%
