@@ -132,14 +132,15 @@ global = global %>%
 summary(global)
 
 US = US_cases_tidy %>%
-  full_join(US_deaths_tidy)
+  full_join(US_deaths_tidy) %>%
+  filter(Population > 1)
 summary(US)
 ```
 ``` {r summaries}
 
 US_by_state = US %>%
   group_by(Province_State, Country_Region, date) %>%
-  summarize(cases = sum(cases), dealths = sum(deaths),
+  summarize(cases = sum(cases), deaths = sum(deaths),
             Population = sum(Population)) %>%
   mutate(deaths_per_mill = deaths * 1000000 / Population) %>%
   ungroup()
