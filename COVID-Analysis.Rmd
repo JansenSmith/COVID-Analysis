@@ -285,7 +285,7 @@ combined_data_predictive = combined_data_filtered %>%
 
 ## Graphical Representation and Visualization
 
-We are proceeding to visualize the relationships between income and normalized deaths per case, as well as life expectancy and normalized deaths per case. Each country's marker size in the plots is being scaled proportionally to its population, effectively conveying the relative impact of COVID-19. To enhance interpretability, countries are being color-coded based on their respective regions, aiding in the identification of trends and patterns. <please mention that the predictive whatevers are dashed red lines but use more words>
+We are proceeding to visualize the relationships between income and normalized deaths per case, as well as life expectancy and normalized deaths per case. Each country's marker size in the plots is being scaled proportionally to its population, effectively conveying the relative impact of COVID-19. To enhance interpretability, countries are being color-coded based on their respective regions, aiding in the identification of trends and patterns. The visualizations feature dashed red lines that represent the projected relationships derived from the predictive models, enriching the plots with insights into expected patterns.
 
 ``` {r visualization}
 
@@ -335,7 +335,7 @@ In any analysis, a critical step is to acknowledge potential biases that could i
 
 ### Explicit Exclusions
 
-We want to be transparent about our data handling decisions. As part of our quality control measures, we removed certain countries from the analysis due to data irregularities. The countries explicitly removed are: **`r paste(removed_countries, collapse = ", ")`**. Collectively, this accounts for a population of at least **`r formatted_population`** individuals who were excluded from the analysis due to technical difficulties.
+We want to be transparent about our data handling decisions. As part of our quality control measures, we removed certain countries from the analysis due to data irregularities. The countries explicitly removed are: **`r paste(removed_countries, collapse = ", ")`**. Collectively, this accounts for a population of at least **`r removed_population`** individuals who were excluded from the analysis due to technical difficulties.
 
 
 ### Sample Representation
