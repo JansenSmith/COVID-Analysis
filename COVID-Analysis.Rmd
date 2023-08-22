@@ -1,5 +1,5 @@
 ---
-title: "COVID Analysis - Assessing Impact of Resources and Health Care on COVID-19 Mortality"
+title: "Socioeconomic Factors: Evaluating the Influence of Resources and Healthcare Access on COVID-19 Mortality"
 author: "Jansen Smith"
 date: "`r Sys.Date()`"
 output:
