@@ -142,6 +142,8 @@ US_by_state = US %>%
   group_by(Province_State, Country_Region, date) %>%
   summarize(cases = sum(cases), deaths = sum(deaths),
             Population = sum(Population)) %>%
+  mutate(cases_per_thou = cases * 1000 / Population) %>%
+  mutate(deaths_per_thou = deaths * 1000 / Population) %>%
   mutate(cases_per_mill = cases * 1000000 / Population) %>%
   mutate(deaths_per_mill = deaths * 1000000 / Population) %>%
   mutate(new_cases = cases - lag(cases),
@@ -152,6 +154,8 @@ US_totals = US_by_state %>%
   group_by(Country_Region, date) %>%
   summarize(cases = sum(cases), deaths = sum(deaths),
             Population = sum(Population)) %>%
+  mutate(cases_per_thou = cases * 1000 / Population) %>%
+  mutate(deaths_per_thou = deaths * 1000 / Population) %>%
   mutate(cases_per_mill = cases * 1000000 / Population) %>%
   mutate(deaths_per_mill = deaths * 1000000 / Population) %>%
   mutate(new_cases = cases - lag(cases),
@@ -199,6 +203,18 @@ US_by_state %>%
   ggplot(aes(x = date, y = cases)) + geom_line(aes(color = "cases")) + geom_point(aes(color = "cases")) + geom_line(aes(y = deaths, color = "deaths")) + geom_point(aes(y = deaths, color = "deaths")) + scale_y_log10() + theme(legend.position="bottom", axis.text.x = element_text(angle = 90)) + labs(title = str_c("COVID19 in ", state), y= NULL)
 
 ```
+
+``` {r model}
+latest_date <- max(US_by_state$date)
+
+US_state_totals <- US_by_state %>%
+  filter(date == latest_date) %>%
+  select(-date)
+mod = lm(deaths_per_thou ~ cases_per_thou, data = US_by_state)
+summary(mod)
+
+```
+
 # Convert UID to character and exclude incompatible columns
 global_cases <- global_cases %>%
     mutate(UID = as.character(UID)) %>%
