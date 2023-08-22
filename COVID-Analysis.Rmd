@@ -34,17 +34,19 @@ library(tidyverse)
 
 # Load the lubridate package for parsing dates
 library(lubridate)
+
 ```
 
 ## COVID-19 data import
 
 Begin by reading in cases and deaths data from two main csv files, over global scope.
 
-```{r import}
+```{r import, code_folding=TRUE}
 
 # These two sources were provided by the professor.
 url = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/"
-filenames = c("time_series_covid19_confirmed_global.csv",  "time_series_covid19_deaths_global.csv")
+filenames = c("time_series_covid19_confirmed_global.csv",  
+              "time_series_covid19_deaths_global.csv")
 urls = str_c(url, filenames)
 
 # Read CSV files and suppress messages about column types
@@ -100,10 +102,11 @@ suppressMessages({ # Messages suppressed for aesthetic reasons. Code runs withou
 
 Importing Hans Rosling's custom dataset for The Joy of Stats, maintained by his organization GapMinder since his death in 2017. This dataset contains essential socio-economic indicators, including lifespan, income per capita, population, and region, for various countries. The dataset serves as a valuable resource to explore the relationships between these indicators and COVID-19's impact on populations.
 
-``` {r import_hans_rosling}
+``` {r import_hans_rosling, code_folding=TRUE}
 
 # This csv URL is a permalink that will remain reproducible.
-global_stats_url = "https://raw.githubusercontent.com/JansenSmith/COVID-Analysis/main/JoyOfStats_data.csv"
+global_stats_url = 
+  "https://raw.githubusercontent.com/JansenSmith/COVID-Analysis/main/JoyOfStats_data.csv"
 global_stats = read_csv(global_stats_url, show_col_types = FALSE)
 ```
 
@@ -133,8 +136,10 @@ aggregated_data = latest_data %>%
   group_by(Country_Region) %>%
   summarize(cases = sum(cases), deaths = sum(deaths)) %>%
   filter(cases > 0) %>%  # Remove countries with no cases
-  mutate(Country_Region = ifelse(Country_Region == "US", "United States", Country_Region)) %>%
-  mutate(Country_Region = ifelse(Country_Region == "Burma", "Myanmar", Country_Region))
+  mutate(Country_Region = ifelse(Country_Region == "US", 
+                                 "United States", Country_Region)) %>%
+  mutate(Country_Region = ifelse(Country_Region == "Burma", 
+                                 "Myanmar", Country_Region))
 
 # Filter the global_stats dataframe to isolate the relevant year
 global_stats_latest_year = global_stats %>%
@@ -164,7 +169,8 @@ Given the inherent challenges posed by extremely small values resulting from dea
 
 # Calculate normalized deaths per case metric
 global_ratio_normalized = global_ratio %>%
-  mutate(normalized_deaths_per_case = deaths_per_case / global_avg_ratio$global_avg_deaths_per_case)
+  mutate(normalized_deaths_per_case = 
+           deaths_per_case / global_avg_ratio$global_avg_deaths_per_case)
 
 ```
 
@@ -181,16 +187,21 @@ Finally, we print a list of the removed countries to clearly document the exclud
 
 # Merge global_ratio_normalized with global_stats, filtering appropriately
 combined_data = global_ratio_normalized %>%
-  left_join(global_stats_latest_year, by = c("Country_Region" = "country (income_per_person_gdpperc.csv)")) %>%
-  select(Country_Region, normalized_deaths_per_case, Income, Life_Expectancy, Population, Region)
+  left_join(global_stats_latest_year, 
+            by = c("Country_Region" = "country (income_per_person_gdpperc.csv)")) %>%
+  select(Country_Region, normalized_deaths_per_case, 
+         Income, Life_Expectancy, Population, Region)
 
 # Identify and remove countries with erroneous data
 combined_data_filtered = combined_data %>%
-  filter(!is.na(Income) & !is.na(normalized_deaths_per_case) & !is.na(Life_Expectancy) & !is.na(Population) & !is.na(Region)) %>%
+  filter(!is.na(Income) & !is.na(normalized_deaths_per_case) & !is.na(Life_Expectancy) & 
+           !is.na(Population) & !is.na(Region)) %>%
   filter(Country_Region != "Yemen") # Explicitly removed due to outlier status
 
 # Determine removed countries
-removed_countries = unique(combined_data$Country_Region[!combined_data$Country_Region %in% combined_data_filtered$Country_Region])
+removed_countries = 
+  unique(combined_data$Country_Region[!combined_data$Country_Region %in% 
+                                        combined_data_filtered$Country_Region])
 
 # Create a copy of combined_data that only contains the removed countries
 removed_data = combined_data %>%
@@ -200,7 +211,10 @@ removed_data = combined_data %>%
 removed_population = sum(removed_data$Population, na.rm = TRUE)
 
 # Print the list of removed countries
-cat("Removed countries were", paste(removed_countries, collapse = ", "), "\n\n")
+cat("Removed countries were", strwrap(
+  paste("Removed countries were", paste(removed_countries_list, collapse = ", ")), 
+  width = 80  # You can adjust the width as needed
+  ), "\n\n")
 
 # Print the number of removed persons
 if (is.na(removed_population)) {
