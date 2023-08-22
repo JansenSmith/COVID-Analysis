@@ -189,22 +189,22 @@ print(deaths_plot)
 par(mfrow = c(1, 1))
 
 US_totals %>%
-  filter(cases>0) %>%
+  filter(cases > 0) %>%
   ggplot(aes(x = date, y = cases)) + geom_line(aes(color = "cases")) + geom_point(aes(color = "cases")) + geom_line(aes(y = deaths, color = "deaths")) + geom_point(aes(y = deaths, color = "deaths")) + scale_y_log10() + theme(legend.position="bottom", axis.text.x = element_text(angle = 90)) + labs(title = "COVID19 in US", y= NULL)
 
 US_totals %>%
-  filter(cases>0) %>%
+  filter(cases > 0, new_cases >= 0, !is.na(new_cases)) %>%
   ggplot(aes(x = date, y = new_cases)) + geom_line(aes(color = "new_cases")) + geom_point(aes(color = "new_cases")) + geom_line(aes(y = new_deaths, color = "new_deaths")) + geom_point(aes(y = new_deaths, color = "new_deaths")) + scale_y_log10() + theme(legend.position="bottom", axis.text.x = element_text(angle = 90)) + labs(title = "COVID19 in US", y= NULL)
 
 state = "New York"
 US_by_state %>%
   filter(Province_State == state) %>%
-  filter(cases>0) %>%
+  filter(cases>0, new_cases >= 0, !is.na(new_cases)) %>%
   ggplot(aes(x = date, y = cases)) + geom_line(aes(color = "cases")) + geom_point(aes(color = "cases")) + geom_line(aes(y = deaths, color = "deaths")) + geom_point(aes(y = deaths, color = "deaths")) + scale_y_log10() + theme(legend.position="bottom", axis.text.x = element_text(angle = 90)) + labs(title = str_c("COVID19 in ", state), y= NULL)
 
 ```
 
-``` {r model}
+``` {r class_model}
 latest_date = max(US_by_state$date)
 
 US_state_totals = US_by_state %>%
@@ -219,61 +219,18 @@ US_tot_w_pred %>% ggplot() + geom_point(aes(x = cases_per_thou, y = deaths_per_t
 
 ```
 
-# Convert UID to character and exclude incompatible columns
-global_cases <- global_cases %>%
-    mutate(UID = as.character(UID)) %>%
-    select(-c(iso2, code3, FIPS, Admin2, iso3, Lat, Long_))  # Exclude columns you don't need
+## Global Lifespan & Income Per Capita Import
+Importing Hans Rosling's original dataset for The Joy of Stats, maintained by his organization GapMinder since his death in 2017. This dataset 
+``` {r import_hans_rosling}
 
-# Gather the data into a longer format
-global_cases <- global_cases %>%
-    pivot_longer(
-        cols = starts_with("1/"),  # Select columns corresponding to dates
-        names_to = "date",
-        values_to = "cases",
-        values_drop_na = TRUE  # Drop NA values
-    ) %>%
-    mutate(date = as.Date(date, format = "%m/%d/%y"))
-
-# Tidy the data by pivoting longer
-global_cases <- global_cases %>%
-    pivot_longer(
-        cols = c(Province_State, "Country_Region"),
-        names_to = "location",
-        values_to = "value"
-    ) %>%
-    arrange(location, date)
-
-global <- global_cases %>%
-    full_join(global_deaths)
-
-# Display the resulting tidy dataset
-print(global_cases)
-
+global_stats_url = "https://raw.githubusercontent.com/JansenSmith/COVID-Analysis/main/JoyOfStats_data.csv"
+global_stats = read_csv(global_stats_url)
 
 ```
+## Original Model
 
-## NYPD Shooting data visualization
+``` {r my_model}
 
-```{r plotting}
-data %>%
-  ggplot(aes(x = OCCUR_DATE)) +
-  geom_line(stat = "count") +
-  labs(title = "Number of NYPD Shooting Incidents Over Time",
-       x = "Date",
-       y = "Number of Incidents") +
-  theme_minimal() 
-
-# Plot the number of incidents per week of the year, aggregating all years
-data %>%
-  group_by(Week_of_Year) %>%
-  summarize(Num_Incidents = n(), Median_Incidents = median(Num_Incidents)) %>%
-  ggplot(aes(x = Week_of_Year, y = Num_Incidents)) +
-  geom_bar(stat = "identity", fill = "steelblue") +
-  geom_line(aes(y = Median_Incidents), color = "red", linewidth = 1.5) +  # Add a red line for the median
-  labs(title = "Aggregate Number of NYPD Shooting Incidents per Week of the Year",
-       x = "Week of the Year",
-       y = "Number of Incidents") +
-  theme_minimal()
 ```
 
 ## Analysis
