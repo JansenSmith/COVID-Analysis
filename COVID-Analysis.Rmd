@@ -123,7 +123,8 @@ latest_data = global %>%
 aggregated_data = latest_data %>%
   group_by(Country_Region) %>%
   summarize(cases = sum(cases), deaths = sum(deaths)) %>%
-  filter(cases > 0)  # Remove countries with no cases
+  filter(cases > 0) %>%  # Remove countries with no cases
+  mutate(Country_Region = ifelse(Country_Region == "US", "United States", Country_Region))
 
 # Filter the global_stats dataframe to isolate the relevant year
 global_stats_latest_year = global_stats %>%
